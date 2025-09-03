@@ -428,7 +428,7 @@ Capa de infraestructura para el acceso a datos que maneja:
 ### Usar la autenticación en Swagger
 
 1. **Obtener el token**:
-   - Navega a `/api/Auth/login`
+   - Ir a este endpoint: `/api/Auth/login`
    - Usa cualquier usuario/contraseña (no hay validación real)
    - Copia el token de la respuesta
 
