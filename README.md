@@ -410,11 +410,10 @@ Capa de infraestructura para el acceso a datos que maneja:
     "ExpiryInHours": "24"
   }
   ```
-
+  
    La key del jwt debe tener como minimo 32 caracteres.
    Si no se colocan user y password en la ConnectionString, se usara Windows Authentication, y si se colocan, se usará SQL Authentication. Recomiendo dejarlas en blanco siempre, ya que solo se colocaran credenciales cuando se despliegue la API con Docker
-
-    - Ejecutar el proyecto API
+3. Ejecutar el proyecto API
 
 # Notas Importantes
 
