@@ -1,0 +1,56 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ppi_sqlserver
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ACCEPT_EULA: Y
+      MSSQL_PID: Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./DB.sql:/tmp/DB.sql
+    command: >
+      bash -c " /opt/mssql/bin/sqlservr & until /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -C -Q 'SELECT 1' >/dev/null 2>&1; do
+        echo 'Iniciando server de SQL...';
+        sleep 2;
+      done; if ! /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -C -Q 'SELECT name FROM sys.databases WHERE name = \"PPI\"' | grep -q 'PPI'; then
+        echo 'Base de datos PPI no existe. Corriendo script para crear base de datos PPI...';
+        /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -C -i /tmp/DB.sql;
+        echo 'Base de datos creada!';
+      else
+        echo 'Base de datos PPI ya existe. Saltando inicialización.';
+      fi; echo 'Servidor de SQL listo para ser usado por la api.'; wait; "
+    networks:
+      - ppi_network
+
+  ppi_api:
+    build:
+      context: .
+      dockerfile: apps/API/Dockerfile
+      args:
+        BUILD_CONFIGURATION: Release
+    container_name: ppi_api_container
+    environment:
+      ConnectionString__Server: ${SERVER}
+      ConnectionString__DataBase: ${DATABASE}
+      ConnectionString__User: ${USER}
+      ConnectionString__Password: ${PASSWORD}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      Jwt__Key: ${JWT_KEY}
+      Jwt__ExpiryInHours: ${JWT_EXPIRY_HOURS}
+    ports:
+      - "3000:8080"
+    depends_on:
+      - sqlserver
+    networks:
+      - ppi_network
+
+volumes:
+  sqlserver_data:
+
+
+networks:
+  ppi_network:
+    driver: bridge

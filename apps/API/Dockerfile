@@ -1,0 +1,21 @@
+# Consulte https://aka.ms/customizecontainer para aprender a personalizar su contenedor de depuración y cómo Visual Studio usa este Dockerfile para compilar sus imágenes para una depuración más rápida.
+# Esta fase se usa para compilar el proyecto de servicio
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["apps/API/API.csproj", "apps/API/"]
+COPY ["src/core/Application/Application.csproj", "src/core/Application/"]
+COPY ["src/core/Domain/Domain.csproj", "src/core/Domain/"]
+COPY ["src/core/Base/Base.csproj", "src/core/Base/"]
+COPY ["src/infrastructure/Persistence/Persistence.csproj", "src/infrastructure/Persistence/"]
+RUN dotnet restore "apps/API/API.csproj"
+COPY . .
+WORKDIR "/src/apps/API"
+RUN dotnet build "API.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish "API.csproj" -c $BUILD_CONFIGURATION -o /app/publish
+
+# Esta fase se usa en producción o cuando se ejecuta desde VS en modo normal (valor predeterminado cuando no se usa la configuración de depuración)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "API.dll"]

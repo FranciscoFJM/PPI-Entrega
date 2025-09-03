@@ -1,0 +1,13 @@
+﻿global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Authorization;
+global using Domain.Models;
+global using Domain.Services;
+global using Domain.Repositories;
+global using Application.Services;
+global using API.DTOs.Orders;
+global using FluentValidation;
+global using Microsoft.EntityFrameworkCore;
+global using Persistence.Entities;
+global using System.Reflection;
+global using AutoMapper;
+global using System.Security.Claims;

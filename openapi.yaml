@@ -1,0 +1,1022 @@
+openapi: 3.0.3
+info:
+  title: PPI API
+  description: API para gestion de órdenes de inversión - PPI
+  version: 1.0.0
+  
+servers:
+  - url: http://localhost:3000
+    description: Local Docker environment
+  - url: https://localhost:5001
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Auth Controller
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Autentica al usuario y genera un token JWT
+      description: Se puede usar cualquier usuario/contraseña ya que no hay tabla de usuarios en la base de datos.
+      security: []  
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestDto'
+            example:
+              username: "demo"
+              password: "demo"
+      responses:
+        '200':
+          description: Token JWT para autorización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponseDto'
+        '400':
+          description: La información recibida no es válida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/auth/verify:
+    get:
+      tags:
+        - Authentication
+      summary: Endpoint de prueba para verificar que la autenticación JWT funciona
+      description: Información del usuario autenticado
+      responses:
+        '200':
+          description: Token válido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Token válido"
+                  username:
+                    type: string
+                    example: "demo"
+                  claims:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        value:
+                          type: string
+        '401':
+          description: No autorizado
+
+  # Asset Controller
+  /api/asset:
+    get:
+      tags:
+        - Assets
+      summary: Obtiene todos los activos disponibles
+      description: Lista de todos los activos
+      responses:
+        '200':
+          description: Lista de todos los activos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetListResponse'
+
+  /api/asset/{id}:
+    get:
+      tags:
+        - Assets
+      summary: Obtiene un activo específico por su Id
+      description: Activo encontrado o NotFound si no existe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id único del activo
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Activo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetResponse'
+        '404':
+          description: Activo no encontrado
+
+  /api/asset/GetAssetsByAssetTypeId/{assetTypeId}:
+    get:
+      tags:
+        - Assets
+      summary: Obtiene todos los activos que pertenecen a un tipo específico
+      description: |
+        Lista de activos del tipo especificado o NotFound si no existen.
+        Tipos de activo: 1 = Acción, 2 = Bonos, 3 = FCI
+      parameters:
+        - name: assetTypeId
+          in: path
+          required: true
+          description: Id del tipo de activo
+          schema:
+            type: integer
+            enum: [1, 2, 3]
+      responses:
+        '200':
+          description: Lista de activos del tipo especificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetListResponse'
+        '404':
+          description: No se encontraron activos para el tipo especificado
+
+  # AssetType Controller
+  /api/assettype:
+    get:
+      tags:
+        - Asset Types
+      summary: Obtiene todos los tipos de activos disponibles
+      description: Lista de todos los tipos de activos
+      responses:
+        '200':
+          description: Lista de todos los tipos de activos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetTypeListResponse'
+
+  /api/assettype/{id}:
+    get:
+      tags:
+        - Asset Types
+      summary: Obtiene un tipo de activo específico por su Id
+      description: |
+        Tipo de activo encontrado o NotFound si no existe.
+        Tipos: 1 = Acción, 2 = Bonos, 3 = FCI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id único del tipo de activo
+          schema:
+            type: integer
+            enum: [1, 2, 3]
+      responses:
+        '200':
+          description: Tipo de activo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetTypeResponse'
+        '404':
+          description: Tipo de activo no encontrado
+
+  # OperationType Controller
+  /api/operationtype:
+    get:
+      tags:
+        - Operation Types
+      summary: Obtiene todos los tipos de operaciones disponibles
+      description: Lista de todos los tipos de operaciones
+      responses:
+        '200':
+          description: Lista de todos los tipos de operaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationTypeListResponse'
+
+  /api/operationtype/{id}:
+    get:
+      tags:
+        - Operation Types
+      summary: Obtiene un tipo de operación específico por su Id
+      description: |
+        Tipo de operación encontrado o NotFound si no existe.
+        Tipos: C = Compra, V = Venta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id único del tipo de operación
+          schema:
+            type: string
+            enum: ["C", "V"]
+      responses:
+        '200':
+          description: Tipo de operación encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationTypeResponse'
+        '404':
+          description: Tipo de operación no encontrado
+
+  # OrderState Controller
+  /api/orderstate:
+    get:
+      tags:
+        - Order States
+      summary: Obtiene todos los estados de órdenes disponibles
+      description: Lista de todos los estados de órdenes
+      responses:
+        '200':
+          description: Lista de todos los estados de órdenes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStateListResponse'
+
+  /api/orderstate/{id}:
+    get:
+      tags:
+        - Order States
+      summary: Obtiene un estado de orden específico por su Id
+      description: |
+        Estado de orden encontrado o NotFound si no existe.
+        Estados: 0 = En proceso, 1 = Ejecutada, 3 = Cancelada
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id único del estado de orden
+          schema:
+            type: integer
+            enum: [0, 1, 3]
+      responses:
+        '200':
+          description: Estado de orden encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStateResponse'
+        '404':
+          description: Estado de orden no encontrado
+
+  # Order Controller
+  /api/order:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene todas las órdenes disponibles
+      description: Lista de todas las órdenes disponibles
+      responses:
+        '200':
+          description: Lista de todas las órdenes disponibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /api/order/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene una orden específica por su Id
+      description: |
+        Esta orden vendrá con información detallada.
+        Se incluyen las descripciones del activo, tipo de activo, tipo de operación y estado de la orden.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id único de la orden
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Orden encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Orden no encontrada
+    delete:
+      tags:
+        - Orders
+      summary: Elimina una orden del sistema
+      description: Resultado de la operación de eliminación
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id de la orden a eliminar
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Orden eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Orden no encontrada
+
+  /api/order/asset/{assetId}:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene todas las órdenes asociadas a un activo específico
+      description: Lista de órdenes del activo especificado
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          description: Id del activo
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de órdenes del activo especificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /api/order/account/{accountId}:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene todas las órdenes asociadas a una cuenta específica
+      description: Lista de órdenes de la cuenta especificada
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: Id de la cuenta
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de órdenes de la cuenta especificada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /api/order/status/{statusId}:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene todas las órdenes que tienen un estado específico
+      description: |
+        Lista de órdenes con el estado especificado.
+        Estados: 0 = En proceso, 1 = Ejecutada, 3 = Cancelada
+      parameters:
+        - name: statusId
+          in: path
+          required: true
+          description: Id del estado de la orden
+          schema:
+            type: integer
+            enum: [0, 1, 3]
+      responses:
+        '200':
+          description: Lista de órdenes con el estado especificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /api/order/operation/{operationTypeId}:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene todas las órdenes que tienen un tipo de operación específico
+      description: |
+        Lista de órdenes con el tipo de operación especificado.
+        Tipos: C = Compra, V = Venta
+      parameters:
+        - name: operationTypeId
+          in: path
+          required: true
+          description: Id del tipo de operación
+          schema:
+            type: string
+            enum: ["C", "V"]
+      responses:
+        '200':
+          description: Lista de órdenes con el tipo de operación especificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /api/order/assettype/{assetTypeId}:
+    get:
+      tags:
+        - Orders
+      summary: Obtiene todas las órdenes asociadas a un tipo de activo específico
+      description: |
+        Lista de órdenes del tipo de activo especificado.
+        Tipos: 1 = Acción, 2 = Bono, 3 = FCI
+      parameters:
+        - name: assetTypeId
+          in: path
+          required: true
+          description: Id del tipo de activo
+          schema:
+            type: integer
+            enum: [1, 2, 3]
+      responses:
+        '200':
+          description: Lista de órdenes del tipo de activo especificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /api/order/Stock:
+    post:
+      tags:
+        - Orders
+      summary: Crea una nueva orden con Activo tipo Acción
+      description: |
+        Solo se pueden usar los Activos de tipo Acción (AssetTypeId = 1).
+        No se ingresa el precio, se obtiene del activo.
+        Se deben discriminar comisiones e impuestos:
+        • Comisiones: 0.6% sobre el "Monto Total"
+        • Impuestos: 21% sobre el valor de las comisiones
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStockOrderDto'
+      responses:
+        '200':
+          description: Resultado de la operación de creación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: La información recibida no es válida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/order/Bond:
+    post:
+      tags:
+        - Orders
+      summary: Crea una nueva orden con Activo tipo Bono
+      description: |
+        Solo se pueden usar los Activos de tipo Bono (AssetTypeId = 2).
+        Se ingresan el precio y la cantidad.
+        Se deben discriminar comisiones e impuestos:
+        • Comisiones: 0.2% sobre el "Monto Total"
+        • Impuestos: 21% sobre el valor de las comisiones
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBondOrderDto'
+      responses:
+        '200':
+          description: Resultado de la operación de creación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: La información recibida no es válida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/order/MutualFund:
+    post:
+      tags:
+        - Orders
+      summary: Crea una nueva orden de Activo tipo FCI
+      description: |
+        Solo se pueden usar los Activos de tipo FCI (AssetTypeId = 3).
+        No se aplican comisiones ni impuestos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMutualFundOrderDto'
+      responses:
+        '200':
+          description: Resultado de la operación de creación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: La información recibida no es válida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/order/{id}/status:
+    patch:
+      tags:
+        - Orders
+      summary: Actualiza el estado de una orden existente
+      description: |
+        Se puede cambiar el estado de la orden a:
+        • 0 = En proceso
+        • 1 = Ejecutada
+        • 3 = Cancelada
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Id de la orden a actualizar
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusDto'
+      responses:
+        '200':
+          description: Resultado de la operación de actualización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: La información recibida no es válida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Orden no encontrada
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Authorization header usando el esquema Bearer. Ejemplo "Authorization Bearer {token}"
+
+  schemas:
+    # Auth DTOs
+    LoginRequestDto:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          description: Nombre de usuario (mínimo 3 caracteres)
+          example: "demo"
+        password:
+          type: string
+          minLength: 4
+          description: Contraseña (mínimo 4 caracteres)
+          example: "demo"
+
+    LoginResponseDto:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Token JWT
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expires:
+          type: string
+          format: date-time
+          description: Fecha y hora de expiración del token
+          example: "2025-09-01T12:00:00Z"
+        tokenType:
+          type: string
+          description: Tipo de token
+          example: "Bearer"
+
+    # Order DTOs
+    CreateStockOrderDto:
+      type: object
+      required:
+        - accountId
+        - assetId
+        - quantity
+        - operationTypeId
+      properties:
+        accountId:
+          type: integer
+          description: Id de la cuenta
+          example: 1
+        assetId:
+          type: integer
+          description: Id del activo
+          example: 1
+        quantity:
+          type: integer
+          format: int64
+          description: Cantidad de activos
+          example: 100
+        operationTypeId:
+          type: string
+          enum: ["C", "V"]
+          description: Tipo de operación (C = Compra, V = Venta)
+          example: "C"
+
+    CreateBondOrderDto:
+      type: object
+      required:
+        - accountId
+        - assetId
+        - quantity
+        - price
+        - operationTypeId
+      properties:
+        accountId:
+          type: integer
+          description: Id de la cuenta
+          example: 1
+        assetId:
+          type: integer
+          description: Id del activo
+          example: 2
+        quantity:
+          type: integer
+          format: int64
+          description: Cantidad de activos
+          example: 50
+        price:
+          type: number
+          format: decimal
+          description: Precio del bono
+          example: 1000.50
+        operationTypeId:
+          type: string
+          enum: ["C", "V"]
+          description: Tipo de operación (C = Compra, V = Venta)
+          example: "C"
+
+    CreateMutualFundOrderDto:
+      type: object
+      required:
+        - accountId
+        - assetId
+        - quantity
+        - operationTypeId
+      properties:
+        accountId:
+          type: integer
+          description: Id de la cuenta
+          example: 1
+        assetId:
+          type: integer
+          description: Id del activo
+          example: 3
+        quantity:
+          type: integer
+          format: int64
+          description: Cantidad de activos
+          example: 200
+        operationTypeId:
+          type: string
+          enum: ["C", "V"]
+          description: Tipo de operación (C = Compra, V = Venta)
+          example: "C"
+
+    UpdateOrderStatusDto:
+      type: object
+      required:
+        - statusId
+      properties:
+        statusId:
+          type: integer
+          enum: [0, 1, 3]
+          description: Nuevo estado de la orden (0 = En proceso, 1 = Ejecutada, 3 = Cancelada)
+          example: 1
+
+    
+    ResultModel:
+      type: object
+      properties:
+        data:
+          oneOf:
+            - type: object
+            - type: array
+          description: Datos de la respuesta
+        ok:
+          type: boolean
+          description: Indica si la operación fue exitosa (true si no hay errores)
+        message:
+          type: string
+          description: Mensaje de la operación
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorModel'
+          description: Lista de errores si los hay
+
+    ErrorModel:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Mensaje del error
+        errorCode:
+          type: integer
+          enum: [0, 1, 2]
+          description: Código del error (0=InputDataError, 1=DatabaseError, 2=InternalError)
+
+    # Domain Models
+    AssetModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Id único del activo
+          example: 1
+        ticker:
+          type: string
+          description: Símbolo del activo
+          example: "AAPL"
+        name:
+          type: string
+          description: Nombre del activo
+          example: "Apple Inc."
+        assetType:
+          type: integer
+          description: Tipo de activo (1=Acción, 2=Bonos, 3=FCI)
+          enum: [1, 2, 3]
+          example: 1
+        unitPrice:
+          type: number
+          format: decimal
+          description: Precio unitario del activo
+          example: 150.25
+
+    AssetTypeModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Id único del tipo de activo
+          example: 1
+        description:
+          type: string
+          description: Descripción del tipo de activo
+          example: "Acción"
+
+    OperationTypeModel:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Id del tipo de operación
+          example: "C"
+        description:
+          type: string
+          description: Descripción del tipo de operación
+          example: "Compra"
+
+    OrderStateModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Id único del estado de orden
+          example: 0
+        description:
+          type: string
+          description: Descripción del estado
+          example: "En proceso"
+
+    OrderModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Id único de la orden
+          example: 1
+        accountId:
+          type: integer
+          description: Id de la cuenta
+          example: 1
+        assetId:
+          type: integer
+          description: Id del activo
+          example: 1
+        quantity:
+          type: integer
+          format: int64
+          description: Cantidad de activos
+          example: 100
+        price:
+          type: number
+          format: decimal
+          description: Precio del activo
+          example: 150.25
+        operationTypeId:
+          type: string
+          description: Tipo de operación
+          example: "C"
+        statusId:
+          type: integer
+          description: Estado de la orden
+          example: 0
+        totalAmount:
+          type: number
+          format: decimal
+          description: Monto total de la orden
+          example: 15025.00
+
+    OrderDetailedModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Id único de la orden
+          example: 1
+        accountId:
+          type: integer
+          description: Id de la cuenta
+          example: 1
+        assetId:
+          type: integer
+          description: Id del activo
+          example: 1
+        quantity:
+          type: integer
+          format: int64
+          description: Cantidad de activos
+          example: 100
+        price:
+          type: number
+          format: decimal
+          description: Precio del activo
+          example: 150.25
+        operationTypeId:
+          type: string
+          description: Tipo de operación
+          example: "C"
+        statusId:
+          type: integer
+          description: Estado de la orden
+          example: 0
+        totalAmount:
+          type: number
+          format: decimal
+          description: Monto total de la orden
+          example: 15025.00
+        assetName:
+          type: string
+          description: Nombre del activo
+          example: "Apple Inc."
+        assetType:
+          type: integer
+          description: Tipo de activo
+          example: 1
+        assetTypeDescription:
+          type: string
+          description: Descripción del tipo de activo
+          example: "Acción"
+        operationTypeDescription:
+          type: string
+          description: Descripción del tipo de operación
+          example: "Compra"
+        statusDescription:
+          type: string
+          description: Descripción del estado
+          example: "En proceso"
+
+    # Specific Response Types
+    AssetResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AssetModel'
+
+    AssetListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/AssetModel'
+
+    AssetTypeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AssetTypeModel'
+
+    AssetTypeListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/AssetTypeModel'
+
+    OperationTypeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OperationTypeModel'
+
+    OperationTypeListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/OperationTypeModel'
+
+    OrderStateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OrderStateModel'
+
+    OrderStateListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderStateModel'
+
+    OrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OrderDetailedModel'
+
+    OrderListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResultModel'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderDetailedModel'
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: integer
+          example: 0
+          description: Indica que la operación falló
+        message:
+          type: string
+          example: "La información recibida no es válida. Por favor, revise los datos e intente nuevamente."
+          description: Mensaje de error de validación
+
+tags:
+  - name: Authentication
+    description: Operaciones de autenticación y autorización
+  - name: Assets
+    description: Gestión de activos financieros
+  - name: Asset Types
+    description: Gestión de tipos de activos
+  - name: Operation Types
+    description: Gestión de tipos de operaciones
+  - name: Order States
+    description: Gestión de estados de órdenes 
+  - name: Orders
+    description: Gestión de órdenes (CRUD)
