@@ -409,6 +409,8 @@ Capa de infraestructura para el acceso a datos que maneja:
     "Key": "PPI_JWT_KEY_SHA256_AUTHORIZATION_113355778899",
     "ExpiryInHours": "24"
   }
+  ```
+
    La key del jwt debe tener como minimo 32 caracteres.
    Si no se colocan user y password en la ConnectionString, se usara Windows Authentication, y si se colocan, se usará SQL Authentication. Recomiendo dejarlas en blanco siempre, ya que solo se colocaran credenciales cuando se despliegue la API con Docker
 
